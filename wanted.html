@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+  <meta name="googlebot" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>W(ant)ED — Případ ztracených konverzí</title>
+
+  <!-- Aktiv Grotesk Ex via Adobe Fonts (per brand manual) -->
+  <link rel="stylesheet" href="https://use.typekit.net/zch7ids.css" />
+
+  <!-- Inter via Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* =========================================================
+       (ant) — WANTED deck
+       12 slides, 16:9, brand: clean ant + detective accent layer
+       ========================================================= */
+
+    /* ---------- Tokens ---------- */
+    :root {
+      --black: #191a1b;
+      --white: #ffffff;
+      --ant-green: #5bffc4;
+      --light-green: #d3fff5;
+      --grey: #aeb1b7;
+      --light-grey: #e7e8e9;
+
+      --font-display: "aktiv-grotesk-extended", "Inter", system-ui, sans-serif;
+      --font-body: "Inter", system-ui, sans-serif;
+
+      --display-tracking: -0.068em;
+      --body-tracking: -0.04em;
+
+      --radius: 10px;
+      --slide-w: 1280px;
+      --slide-h: 720px;
+      --pad: 64px;
+    }
+
+    /* ---------- Reset ---------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: #0a0a0a;
+      font-family: var(--font-body);
+      color: var(--black);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow: hidden;
+    }
+    button { font: inherit; cursor: pointer; }
+    h1, h2, h3, h4, h5, p { margin: 0; }
+    ul { margin: 0; padding: 0; list-style: none; }
+
+    /* ---------- Stage / scaling ---------- */
+    .stage {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      width: var(--slide-w);
+      height: var(--slide-h);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 320ms ease;
+      transform-origin: center center;
+      will-change: opacity;
+    }
+    .slide.is-active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Scale slide to fit viewport while preserving 16:9 */
+    @media (min-aspect-ratio: 16/9) {
+      .slide { transform: scale(calc(100vh / 720)); }
+    }
+    @media (max-aspect-ratio: 16/9) {
+      .slide { transform: scale(calc(100vw / 1280)); }
+    }
+
+    /* ---------- Slide canvas ---------- */
+    .canvas {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: var(--pad);
+      background: var(--white);
+      color: var(--black);
+      overflow: hidden;
+    }
+    .canvas--dark   { background: var(--black);      color: var(--white); }
+    .canvas--green  { background: var(--ant-green);  color: var(--black); }
+    .canvas--lgreen { background: var(--light-green);color: var(--black); }
+
+    /* ---------- Typography ---------- */
+    .display, .h1, .h2, .h3, .h4, .h5, .giant {
+      font-family: var(--font-display);
+      letter-spacing: var(--display-tracking);
+      line-height: 0.92;
+    }
+    .body, p, li, .caption, .meta {
+      font-family: var(--font-body);
+      letter-spacing: var(--body-tracking);
+    }
+
+    .giant {
+      font-weight: 700;
+      font-size: 220px;
+      line-height: 0.88;
+    }
+    .h1 { font-weight: 700; font-size: 96px; }
+    .h2 { font-weight: 600; font-size: 64px; line-height: 1; }
+    .h3 { font-weight: 500; font-size: 40px; line-height: 1.05; }
+    .h4 { font-weight: 500; font-size: 28px; line-height: 1.1; }
+    .h5 { font-weight: 500; font-size: 20px; line-height: 1.15; }
+
+    .body-lg { font-size: 22px; font-weight: 500; line-height: 1.35; }
+    .body    { font-size: 18px; font-weight: 500; line-height: 1.45; }
+    .body-sm { font-size: 14px; font-weight: 500; line-height: 1.4; }
+
+    .caption {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .mono {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      letter-spacing: 0;
+    }
+
+    /* ---------- Highlight pattern ---------- */
+    .hl {
+      background: var(--ant-green);
+      padding: 0 0.12em;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+    .canvas--green .hl { background: var(--white); }
+    .canvas--dark  .hl { background: var(--ant-green); color: var(--black); }
+
+    /* ---------- Case meta header ---------- */
+    .case-meta {
+      position: absolute;
+      top: var(--pad);
+      left: var(--pad);
+      right: var(--pad);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      z-index: 5;
+    }
+    .case-meta__brand {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: var(--display-tracking);
+    }
+    .case-meta__strip {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .meta-pill {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      border: 1px solid currentColor;
+    }
+    .meta-pill--solid {
+      background: var(--black);
+      color: var(--white);
+      border-color: var(--black);
+    }
+    .canvas--dark .meta-pill { border-color: var(--white); color: var(--white); }
+    .canvas--dark .meta-pill--solid {
+      background: var(--ant-green);
+      color: var(--black);
+      border-color: var(--ant-green);
+    }
+    .canvas--green .meta-pill, .canvas--lgreen .meta-pill { border-color: var(--black); color: var(--black); }
+
+    /* ---------- Divider (label) ---------- */
+    .divider {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--black);
+    }
+    .divider::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      background: var(--ant-green);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.2;
+      min-width: 80px;
+      margin-left: 4px;
+    }
+    .canvas--dark .divider { color: var(--white); }
+    .canvas--dark .divider::before { background: var(--ant-green); }
+
+    /* ---------- Slide footer ---------- */
+    .footer {
+      position: absolute;
+      bottom: 28px;
+      left: var(--pad);
+      right: var(--pad);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.6;
+    }
+
+    /* ---------- Reward box ---------- */
+    .reward {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 18px 24px;
+      background: var(--ant-green);
+      color: var(--black);
+      border-radius: var(--radius);
+    }
+    .reward__label {
+      font-family: var(--font-body);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .reward__amount {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 34px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1;
+    }
+    .reward__per {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.7;
+    }
+
+    /* ---------- Wanted badge ---------- */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .badge--wanted { background: var(--black); color: var(--white); }
+    .badge--case   { background: var(--ant-green); color: var(--black); }
+    .badge::before {
+      content: "";
+      width: 6px; height: 6px;
+      background: currentColor;
+      border-radius: 50%;
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--light-grey);
+      border-radius: var(--radius);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card--dark {
+      background: var(--black);
+      color: var(--white);
+      border-color: var(--black);
+    }
+    .card__num {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      color: var(--grey);
+    }
+    .card__title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 26px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1;
+    }
+    .card__desc {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: var(--body-tracking);
+      color: var(--grey);
+      line-height: 1.4;
+    }
+
+    /* ---------- Placeholder (per 06_PLACEHOLDERS.md) ---------- */
+    .ph {
+      position: relative;
+      display: grid;
+      place-items: center;
+      background: var(--ph-color, #ffe4c1);
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0,
+        transparent 14px,
+        rgba(0, 0, 0, 0.08) 14px,
+        rgba(0, 0, 0, 0.08) 15px
+      );
+      overflow: hidden;
+      isolation: isolate;
+      border-radius: 0;
+    }
+    .ph--portrait  { aspect-ratio: 3 / 4; }
+    .ph--square    { aspect-ratio: 1 / 1; }
+    .ph--landscape { aspect-ratio: 16 / 9; }
+    .ph--peach    { --ph-color: #ffe4c1; }
+    .ph--lavender { --ph-color: #dad4ff; }
+    .ph--yellow   { --ph-color: #fffd92; }
+    .ph--pink     { --ph-color: #ffe2eb; }
+    .ph--sky      { --ph-color: #d7edff; }
+    .ph__cap {
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #000;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 6px 12px;
+      white-space: nowrap;
+    }
+
+    /* Mugshot specific */
+    .mugshot {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: var(--light-grey);
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0,
+        transparent 14px,
+        rgba(0, 0, 0, 0.08) 14px,
+        rgba(0, 0, 0, 0.08) 15px
+      );
+      overflow: hidden;
+      border-radius: var(--radius);
+    }
+    .mugshot__id {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      background: var(--black);
+      color: var(--white);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .mugshot__id strong { color: var(--ant-green); }
+    .mugshot__cap {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 6px 12px;
+    }
+
+    /* Silhouette card (slide 03) */
+    .silhouette {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: var(--light-grey);
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0,
+        transparent 14px,
+        rgba(0, 0, 0, 0.08) 14px,
+        rgba(0, 0, 0, 0.08) 15px
+      );
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .silhouette__q {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 110px;
+      color: var(--black);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    .silhouette__num {
+      position: absolute;
+      top: 12px; left: 14px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--black);
+      background: rgba(255,255,255,0.85);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    /* ---------- Navigation ---------- */
+    .deck-nav {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(25, 26, 27, 0.92);
+      backdrop-filter: blur(8px);
+      border-radius: 999px;
+      padding: 8px 12px;
+      z-index: 100;
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+    .deck-nav button {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--white);
+      display: grid;
+      place-items: center;
+      transition: background 160ms ease;
+    }
+    .deck-nav button:hover { background: var(--ant-green); color: var(--black); }
+    .deck-nav__counter {
+      min-width: 56px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .deck-hint {
+      position: fixed;
+      top: 16px;
+      right: 18px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      z-index: 100;
+    }
+
+    /* =========================================================
+       SLIDE-SPECIFIC
+       ========================================================= */
+
+    /* --- Slide 01: Cover --- */
+    .s-cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: 28px;
+      height: 100%;
+    }
+    .s-cover__kicker {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .s-cover__title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 280px;
+      line-height: 0.86;
+      letter-spacing: var(--display-tracking);
+      color: var(--white);
+    }
+    .s-cover__title .ant {
+      color: var(--ant-green);
+    }
+    .s-cover__sub {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: var(--body-tracking);
+      color: var(--white);
+      max-width: 720px;
+      line-height: 1.35;
+    }
+
+    /* --- Slide 02: Příběh --- */
+    .s-story {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 56px;
+      height: 100%;
+      padding-top: 120px;
+      padding-bottom: 80px;
+    }
+    .s-story__narrative {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .s-story__line {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 38px;
+      line-height: 1.1;
+      letter-spacing: var(--display-tracking);
+    }
+    .s-story__line--muted { color: var(--grey); font-weight: 400; }
+    .s-story__line--final { color: var(--black); font-weight: 700; }
+
+    .s-story__suspects {
+      align-self: end;
+      background: var(--light-grey);
+      border-radius: var(--radius);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .s-story__suspects h4 {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .s-story__suspects ul {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .s-story__suspects li {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 24px;
+      letter-spacing: var(--display-tracking);
+      text-decoration: line-through;
+      text-decoration-color: var(--grey);
+      color: var(--grey);
+    }
+    .s-story__pointer {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: var(--display-tracking);
+      color: var(--black);
+      line-height: 1.15;
+    }
+
+    /* --- Slide 03: Gang --- */
+    .s-gang {
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      padding-top: 110px;
+      padding-bottom: 80px;
+      height: 100%;
+    }
+    .s-gang__head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .s-gang__head h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 80px;
+      letter-spacing: var(--display-tracking);
+      line-height: 0.95;
+      max-width: 800px;
+    }
+    .s-gang__grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .s-gang__card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .s-gang__card-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1.05;
+    }
+    .s-gang__card-desc {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: var(--body-tracking);
+      color: var(--grey);
+      line-height: 1.4;
+    }
+
+    /* --- Slide 04-07: Wanted dossier --- */
+    .s-dossier {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 56px;
+      height: 100%;
+      padding-top: 110px;
+      padding-bottom: 80px;
+      align-items: stretch;
+    }
+    .s-dossier__left {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .s-dossier__case {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .s-dossier__right {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      padding-top: 4px;
+    }
+    .s-dossier__title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 78px;
+      letter-spacing: var(--display-tracking);
+      line-height: 0.92;
+    }
+    .s-dossier__row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 20px;
+      padding: 14px 0;
+      border-top: 1px solid var(--light-grey);
+    }
+    .s-dossier__row:first-of-type { border-top: 0; padding-top: 0; }
+    .s-dossier__row dt {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--grey);
+      margin: 0;
+      padding-top: 4px;
+    }
+    .s-dossier__row dd {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1.2;
+      margin: 0;
+    }
+    .s-dossier__badges {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* --- Slide 08: Vyšetřování --- */
+    .s-investigation {
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      padding-top: 110px;
+      padding-bottom: 80px;
+      height: 100%;
+    }
+    .s-investigation h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 80px;
+      letter-spacing: var(--display-tracking);
+      line-height: 0.95;
+      max-width: 900px;
+    }
+    .s-investigation__grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .s-investigation__card {
+      background: var(--light-grey);
+      border-radius: var(--radius);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      justify-content: space-between;
+    }
+    .s-investigation__num {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      color: var(--grey);
+    }
+    .s-investigation__title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 36px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1;
+    }
+    .s-investigation__desc {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: var(--body-tracking);
+      color: var(--black);
+      opacity: 0.8;
+      line-height: 1.45;
+    }
+
+    /* --- Slide 09: Kalkulačka --- */
+    .s-calc {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 32px;
+      height: 100%;
+      padding-top: 110px;
+      padding-bottom: 80px;
+    }
+    .s-calc__top {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .s-calc__title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 130px;
+      letter-spacing: var(--display-tracking);
+      line-height: 0.92;
+      max-width: 1100px;
+    }
+    .s-calc__sub {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: var(--body-tracking);
+      max-width: 720px;
+      line-height: 1.4;
+    }
+    .s-calc__row {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+    .s-calc__amount {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 22px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 360px;
+    }
+    .s-calc__amount-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .s-calc__amount-value {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 38px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1;
+    }
+    .s-calc__cta {
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius);
+      padding: 22px 32px;
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 160ms ease;
+    }
+    .s-calc__cta:hover { background: #2a2c2e; }
+
+    /* --- Slide 10: Článek v novinách --- */
+    .s-news {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      padding-top: 90px;
+      padding-bottom: 80px;
+      height: 100%;
+    }
+    .s-news__masthead {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 16px;
+    }
+    .s-news__masthead h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 56px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1;
+    }
+    .s-news__masthead h3 .ant { color: var(--ant-green); }
+    .s-news__meta {
+      display: flex;
+      gap: 14px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
+    .s-news__headline {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 76px;
+      letter-spacing: var(--display-tracking);
+      line-height: 0.96;
+      max-width: 1100px;
+    }
+    .s-news__byline {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: var(--body-tracking);
+      color: rgba(255,255,255,0.7);
+      max-width: 900px;
+      line-height: 1.45;
+    }
+    .s-news__cols {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 36px;
+      margin-top: 8px;
+    }
+    .s-news__lead {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: var(--body-tracking);
+      line-height: 1.55;
+      color: rgba(255,255,255,0.85);
+    }
+    .s-news__quote {
+      border-left: 2px solid var(--ant-green);
+      padding: 6px 0 6px 22px;
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1.25;
+      color: var(--white);
+    }
+    .s-news__quote-author {
+      display: block;
+      margin-top: 10px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ant-green);
+    }
+
+    /* --- Slide 11: Detektivové --- */
+    .s-team {
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      padding-top: 110px;
+      padding-bottom: 80px;
+      height: 100%;
+    }
+    .s-team h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 80px;
+      letter-spacing: var(--display-tracking);
+      line-height: 0.95;
+      max-width: 900px;
+    }
+    .s-team__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      flex: 1;
+    }
+    .s-team__card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .s-team__photo {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .s-team__dot {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 10px;
+      height: 10px;
+      background: var(--ant-green);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(91, 255, 196, 0.25);
+    }
+    .s-team__name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: var(--display-tracking);
+      line-height: 1.05;
+    }
+    .s-team__role {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: var(--body-tracking);
+      color: var(--grey);
+    }
+
+    /* --- Slide 12: CTA --- */
+    .s-cta {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 36px;
+      height: 100%;
+      padding-top: 110px;
+      padding-bottom: 80px;
+    }
+    .s-cta__kicker {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .s-cta__title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 200px;
+      letter-spacing: var(--display-tracking);
+      line-height: 0.9;
+      color: var(--white);
+    }
+    .s-cta__title .ant { color: var(--ant-green); }
+    .s-cta__sub {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: var(--body-tracking);
+      color: rgba(255,255,255,0.8);
+      max-width: 800px;
+      line-height: 1.4;
+    }
+    .s-cta__contacts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .s-cta__box {
+      border: 1px solid var(--ant-green);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .s-cta__box-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ant-green);
+    }
+    .s-cta__box-value {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: var(--display-tracking);
+      color: var(--white);
+      text-decoration: none;
+    }
+    .s-cta__box-value:hover { color: var(--ant-green); }
+
+    /* =========================================================
+       PRINT
+       ========================================================= */
+    @media print {
+      @page {
+        size: 297mm 167mm;
+        margin: 0;
+      }
+      html, body {
+        height: auto;
+        overflow: visible;
+        background: var(--white);
+      }
+      .stage {
+        position: static;
+        display: block;
+        height: auto;
+      }
+      .slide {
+        position: relative;
+        opacity: 1;
+        pointer-events: auto;
+        transform: none !important;
+        width: 297mm;
+        height: 167mm;
+        page-break-after: always;
+        break-after: page;
+        overflow: hidden;
+      }
+      .slide:last-child {
+        page-break-after: auto;
+      }
+      .deck-nav, .deck-hint { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stage" id="stage">
+
+    <!-- ============================================================
+         SLIDE 01 — COVER
+         ============================================================ -->
+    <section class="slide is-active" data-slide="1">
+      <div class="canvas canvas--dark">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="case-meta__strip">
+            <span class="meta-pill">č. W-2026</span>
+            <span class="meta-pill meta-pill--solid">otevřeno</span>
+            <span class="meta-pill">24. 04. 2026</span>
+          </div>
+        </header>
+
+        <div class="s-cover">
+          <div class="s-cover__kicker">Produkt · UX Audit</div>
+          <h1 class="s-cover__title">W<span class="ant">(ant)</span>ED!</h1>
+          <p class="s-cover__sub">Zločinci okrádají váš eshop o konverze.<br />My je najdeme. A vy dostanete odměnu.</p>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Detective Agency</span>
+          <span>Případ ztracených konverzí</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 02 — PŘÍBĚH / ZADÁNÍ
+         ============================================================ -->
+    <section class="slide" data-slide="2">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">kapitola I. — zadání</div>
+          <span class="meta-pill">02 / 12</span>
+        </header>
+
+        <div class="s-story">
+          <div class="s-story__narrative">
+            <h2 class="h2" style="margin-bottom:18px;">Na první pohled<br />všechno <span class="hl">vypadalo v pořádku.</span></h2>
+            <p class="s-story__line s-story__line--muted">Web běžel.</p>
+            <p class="s-story__line s-story__line--muted">Návštěvnost rostla.</p>
+            <p class="s-story__line s-story__line--muted">Kampaně přiváděly.</p>
+            <p class="s-story__line">…něco neseděl<span style="opacity:0.4">o</span>.</p>
+            <p class="s-story__line">Objednávky nepřicházely.</p>
+            <p class="s-story__line">Košíky opuštěné.</p>
+            <p class="s-story__line s-story__line--final">Zákazníci mizeli. Beze stopy.</p>
+          </div>
+
+          <div class="s-story__suspects">
+            <h4>Podezřelí:</h4>
+            <ul>
+              <li>Marketing?</li>
+              <li>Produkt?</li>
+              <li>Cena?</li>
+            </ul>
+            <p class="s-story__pointer">Skutečný pachatel<br />se skrýval <span class="hl">přímo na webu.</span></p>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>02 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 03 — GANG
+         ============================================================ -->
+    <section class="slide" data-slide="3">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">kapitola II. — gang</div>
+          <span class="meta-pill">03 / 12</span>
+        </header>
+
+        <div class="s-gang">
+          <div class="s-gang__head">
+            <h2>Tichá parta <span class="hl">recidivistů.</span></h2>
+            <p class="body-sm" style="max-width:300px; color:var(--grey);">Čtyři opakovaní pachatelé. Žádný z nich nepracuje sám.</p>
+          </div>
+
+          <div class="s-gang__grid">
+            <div class="s-gang__card">
+              <div class="silhouette">
+                <span class="silhouette__num">No. 001</span>
+                <span class="silhouette__q">?</span>
+              </div>
+              <h3 class="s-gang__card-title">Neviditelné tlačítko</h3>
+              <p class="s-gang__card-desc">Skrývá se před zákazníkem. Když ho najde, je už pozdě.</p>
+            </div>
+            <div class="s-gang__card">
+              <div class="silhouette">
+                <span class="silhouette__num">No. 002</span>
+                <span class="silhouette__q">?</span>
+              </div>
+              <h3 class="s-gang__card-title">Matoucí navigace</h3>
+              <p class="s-gang__card-desc">Vodí zákazníka v kruzích, dokud se nevzdá.</p>
+            </div>
+            <div class="s-gang__card">
+              <div class="silhouette">
+                <span class="silhouette__num">No. 003</span>
+                <span class="silhouette__q">?</span>
+              </div>
+              <h3 class="s-gang__card-title">Hltavý formulář</h3>
+              <p class="s-gang__card-desc">Žádá víc, než je nutné. Pak spolkne data i konverzi.</p>
+            </div>
+            <div class="s-gang__card">
+              <div class="silhouette">
+                <span class="silhouette__num">No. 004</span>
+                <span class="silhouette__q">?</span>
+              </div>
+              <h3 class="s-gang__card-title">Mobilní zrádce</h3>
+              <p class="s-gang__card-desc">Na desktopu vzorný občan. Na mobilu rozbije všechno.</p>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>03 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 04 — WANTED 001
+         ============================================================ -->
+    <section class="slide" data-slide="4">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">dossier 001 / 04 — wanted</div>
+          <span class="meta-pill">04 / 12</span>
+        </header>
+
+        <div class="s-dossier">
+          <div class="s-dossier__left">
+            <div class="s-dossier__case">No. 001 · Zdržovač načítání</div>
+            <div class="mugshot">
+              <span class="mugshot__cap">[ mugshot ]</span>
+              <div class="mugshot__id">
+                <span><strong>NO. 001</strong></span>
+                <span>ZDRŽOVAČ NAČÍTÁNÍ</span>
+              </div>
+            </div>
+            <span class="badge badge--case" style="align-self:flex-start;">Case file · evidence A</span>
+          </div>
+
+          <div class="s-dossier__right">
+            <div class="s-dossier__badges">
+              <span class="badge badge--wanted">Wanted · at large</span>
+            </div>
+            <h2 class="s-dossier__title">Zdržovač<br />načítání.</h2>
+
+            <dl style="margin:0;">
+              <div class="s-dossier__row">
+                <dt>Alias</dt>
+                <dd>„Loading Lenny.“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>aka</dt>
+                <dd>„LCP killer“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Obvinění</dt>
+                <dd>Zpomalování stránek. <span class="hl">Krádež pozornosti.</span></dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Modus operandi</dt>
+                <dd>Okrádá o každou vteřinu navíc. Odchází s košíkem.</dd>
+              </div>
+            </dl>
+
+            <div class="reward" style="align-self:flex-start;">
+              <span class="reward__label">Odměna za dopadení</span>
+              <span class="reward__amount">250 000 Kč</span>
+              <span class="reward__per">měsíčně, dle odhadu škod</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>04 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 05 — WANTED 002
+         ============================================================ -->
+    <section class="slide" data-slide="5">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">dossier 002 / 04 — wanted</div>
+          <span class="meta-pill">05 / 12</span>
+        </header>
+
+        <div class="s-dossier">
+          <div class="s-dossier__left">
+            <div class="s-dossier__case">No. 002 · Prodlužovač konverze</div>
+            <div class="mugshot">
+              <span class="mugshot__cap">[ mugshot ]</span>
+              <div class="mugshot__id">
+                <span><strong>NO. 002</strong></span>
+                <span>PRODLUŽOVAČ KONVERZE</span>
+              </div>
+            </div>
+            <span class="badge badge--case" style="align-self:flex-start;">Case file · evidence B</span>
+          </div>
+
+          <div class="s-dossier__right">
+            <div class="s-dossier__badges">
+              <span class="badge badge--wanted">Wanted · at large</span>
+            </div>
+            <h2 class="s-dossier__title">Prodlužovač<br />konverze.</h2>
+
+            <dl style="margin:0;">
+              <div class="s-dossier__row">
+                <dt>Alias</dt>
+                <dd>„Checkout Charlie.“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>aka</dt>
+                <dd>„Mrhání v košíku“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Obvinění</dt>
+                <dd>Opouštěné košíky. <span class="hl">Přerušený nákup.</span></dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Modus operandi</dt>
+                <dd>Protahuje nákupní proces o zbytečné kroky a mezikroky.</dd>
+              </div>
+            </dl>
+
+            <div class="reward" style="align-self:flex-start;">
+              <span class="reward__label">Odměna za dopadení</span>
+              <span class="reward__amount">480 000 Kč</span>
+              <span class="reward__per">měsíčně, dle odhadu škod</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>05 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 06 — WANTED 003
+         ============================================================ -->
+    <section class="slide" data-slide="6">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">dossier 003 / 04 — wanted</div>
+          <span class="meta-pill">06 / 12</span>
+        </header>
+
+        <div class="s-dossier">
+          <div class="s-dossier__left">
+            <div class="s-dossier__case">No. 003 · Matoucí navigátor</div>
+            <div class="mugshot">
+              <span class="mugshot__cap">[ mugshot ]</span>
+              <div class="mugshot__id">
+                <span><strong>NO. 003</strong></span>
+                <span>MATOUCÍ NAVIGÁTOR</span>
+              </div>
+            </div>
+            <span class="badge badge--case" style="align-self:flex-start;">Case file · evidence C</span>
+          </div>
+
+          <div class="s-dossier__right">
+            <div class="s-dossier__badges">
+              <span class="badge badge--wanted">Wanted · at large</span>
+            </div>
+            <h2 class="s-dossier__title">Matoucí<br />navigátor.</h2>
+
+            <dl style="margin:0;">
+              <div class="s-dossier__row">
+                <dt>Alias</dt>
+                <dd>„Menu Morris.“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>aka</dt>
+                <dd>„Bludička“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Obvinění</dt>
+                <dd><span class="hl">Ztrácení uživatelů.</span> Únik z nákupu.</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Modus operandi</dt>
+                <dd>Skrývá kategorie za záhadná pojmenování. Vodí v kruzích.</dd>
+              </div>
+            </dl>
+
+            <div class="reward" style="align-self:flex-start;">
+              <span class="reward__label">Odměna za dopadení</span>
+              <span class="reward__amount">320 000 Kč</span>
+              <span class="reward__per">měsíčně, dle odhadu škod</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>06 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 07 — WANTED 004
+         ============================================================ -->
+    <section class="slide" data-slide="7">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">dossier 004 / 04 — wanted</div>
+          <span class="meta-pill">07 / 12</span>
+        </header>
+
+        <div class="s-dossier">
+          <div class="s-dossier__left">
+            <div class="s-dossier__case">No. 004 · Mobilní zrádce</div>
+            <div class="mugshot">
+              <span class="mugshot__cap">[ mugshot ]</span>
+              <div class="mugshot__id">
+                <span><strong>NO. 004</strong></span>
+                <span>MOBILNÍ ZRÁDCE</span>
+              </div>
+            </div>
+            <span class="badge badge--case" style="align-self:flex-start;">Case file · evidence D</span>
+          </div>
+
+          <div class="s-dossier__right">
+            <div class="s-dossier__badges">
+              <span class="badge badge--wanted">Wanted · at large</span>
+            </div>
+            <h2 class="s-dossier__title">Mobilní<br />zrádce.</h2>
+
+            <dl style="margin:0;">
+              <div class="s-dossier__row">
+                <dt>Alias</dt>
+                <dd>„Mobile Mike.“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>aka</dt>
+                <dd>„Násilí na palci“</dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Obvinění</dt>
+                <dd>Rozbíjí <span class="hl">layout na mobilu.</span></dd>
+              </div>
+              <div class="s-dossier__row">
+                <dt>Modus operandi</dt>
+                <dd>Zamaskuje tlačítka. Zákazník nedosáhne na CTA.</dd>
+              </div>
+            </dl>
+
+            <div class="reward" style="align-self:flex-start;">
+              <span class="reward__label">Odměna za dopadení</span>
+              <span class="reward__amount">410 000 Kč</span>
+              <span class="reward__per">měsíčně, dle odhadu škod</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>07 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 08 — VYŠETŘOVÁNÍ
+         ============================================================ -->
+    <section class="slide" data-slide="8">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">kapitola III. — metoda</div>
+          <span class="meta-pill">08 / 12</span>
+        </header>
+
+        <div class="s-investigation">
+          <h2>Jak probíhá <span class="hl">vyšetřování.</span></h2>
+
+          <div class="s-investigation__grid">
+            <div class="s-investigation__card">
+              <div>
+                <span class="s-investigation__num">01</span>
+                <h3 class="s-investigation__title" style="margin-top:8px;">Výpovědi svědků</h3>
+              </div>
+              <p class="s-investigation__desc">Analýza chování reálných uživatelů. Kvalitativní rozhovory, test scénáře, drobnosti, které data nezachytí.</p>
+            </div>
+            <div class="s-investigation__card" style="background:var(--black); color:var(--white);">
+              <div>
+                <span class="s-investigation__num" style="color:var(--ant-green);">02</span>
+                <h3 class="s-investigation__title" style="margin-top:8px;">AI software</h3>
+              </div>
+              <p class="s-investigation__desc" style="color:rgba(255,255,255,0.85);">Pokročilé nástroje sledující vzory a anomálie. Najdou to, co lidskému oku unikne.</p>
+            </div>
+            <div class="s-investigation__card" style="background:var(--ant-green);">
+              <div>
+                <span class="s-investigation__num">03</span>
+                <h3 class="s-investigation__title" style="margin-top:8px;">Stopování</h3>
+              </div>
+              <p class="s-investigation__desc">Heatmapy, session recordings, funnel analýza. Stopa, kterou pachatel zanechal.</p>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>08 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 09 — KALKULAČKA
+         ============================================================ -->
+    <section class="slide" data-slide="9">
+      <div class="canvas canvas--green">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="case-meta__strip">
+            <span class="meta-pill">exhibit A · důkaz</span>
+            <span class="meta-pill">(ant) · UX kalkulačka</span>
+            <span class="meta-pill">09 / 12</span>
+          </div>
+        </header>
+
+        <div class="s-calc">
+          <h2 class="s-calc__title">Kolik vás<br />gang okradl?</h2>
+          <p class="s-calc__sub">Tři otázky. Jedna minuta. Odhalené číslo, které vaše účetnictví ještě nezná.</p>
+
+          <div class="s-calc__row">
+            <div class="s-calc__amount">
+              <span class="s-calc__amount-label">Zmizelé konverze (odhad)</span>
+              <span class="s-calc__amount-value">[ ČÁSTKA ] Kč / měs.</span>
+            </div>
+            <button class="s-calc__cta">Spustit kalkulačku →</button>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>09 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 10 — ČLÁNEK V NOVINÁCH
+         ============================================================ -->
+    <section class="slide" data-slide="10">
+      <div class="canvas canvas--dark">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">kapitola IV. — tisk</div>
+          <span class="meta-pill">10 / 12</span>
+        </header>
+
+        <div class="s-news">
+          <div class="s-news__masthead">
+            <h3><span class="ant">(ant)</span> Daily</h3>
+            <div class="s-news__meta">
+              <span>Praha</span>
+              <span>24. 04. 2026</span>
+              <span>č. 1</span>
+              <span>Exkluzivně</span>
+            </div>
+          </div>
+
+          <h2 class="s-news__headline">Gang okradl <span class="hl">statisíce</span> českých eshopařů.</h2>
+          <p class="s-news__byline">Agentura (ant) odhalila organizovanou síť UX zločinců. Škody jdou do miliard.</p>
+
+          <div class="s-news__cols">
+            <p class="s-news__lead">Po měsících tichého vyšetřování se podařilo odhalit, jak skupina UX recidivistů pracovala. Operovala přímo na webech eshopařů, přesto si jí roky nikdo nevšiml. Konverze mizely, návštěvnost rostla, čísla v reportech vypadala v pořádku — a přesto tržby klesaly. Stopy vedly do kódu, do navigace, do checkoutu.</p>
+            <blockquote class="s-news__quote">
+              „Je to jedna z největších sítí, které jsme odhalili. Nepracují ve dne, pracují v každé vteřině, kdy uživatel váhá."
+              <span class="s-news__quote-author">— vedoucí vyšetřování, (ant)</span>
+            </blockquote>
+          </div>
+        </div>
+
+        <footer class="footer" style="opacity:0.5;">
+          <span>(ant) · Case File #W-2026</span>
+          <span>10 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 11 — DETEKTIVOVÉ
+         ============================================================ -->
+    <section class="slide" data-slide="11">
+      <div class="canvas">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider">kapitola V. — tým</div>
+          <span class="meta-pill">11 / 12</span>
+        </header>
+
+        <div class="s-team">
+          <h2>Naši <span class="hl">detektivové.</span></h2>
+
+          <div class="s-team__grid">
+            <article class="s-team__card">
+              <div class="s-team__photo ph ph--portrait ph--lavender">
+                <span class="s-team__dot"></span>
+                <span class="ph__cap">[ FOTO ]</span>
+              </div>
+              <h3 class="s-team__name">[ Jméno ]</h3>
+              <p class="s-team__role">Hlavní vyšetřovatel</p>
+            </article>
+            <article class="s-team__card">
+              <div class="s-team__photo ph ph--portrait ph--peach">
+                <span class="s-team__dot"></span>
+                <span class="ph__cap">[ FOTO ]</span>
+              </div>
+              <h3 class="s-team__name">[ Jméno ]</h3>
+              <p class="s-team__role">Analytik chování</p>
+            </article>
+            <article class="s-team__card">
+              <div class="s-team__photo ph ph--portrait ph--sky">
+                <span class="s-team__dot"></span>
+                <span class="ph__cap">[ FOTO ]</span>
+              </div>
+              <h3 class="s-team__name">[ Jméno ]</h3>
+              <p class="s-team__role">Mobile specialist</p>
+            </article>
+            <article class="s-team__card">
+              <div class="s-team__photo ph ph--portrait ph--yellow">
+                <span class="s-team__dot"></span>
+                <span class="ph__cap">[ FOTO ]</span>
+              </div>
+              <h3 class="s-team__name">[ Jméno ]</h3>
+              <p class="s-team__role">Data detective</p>
+            </article>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>(ant) · Case File #W-2026</span>
+          <span>11 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 12 — CTA
+         ============================================================ -->
+    <section class="slide" data-slide="12">
+      <div class="canvas canvas--dark">
+        <header class="case-meta">
+          <div class="case-meta__brand">(ant)</div>
+          <div class="divider" style="color:var(--white);">case closed — kontakt</div>
+          <span class="meta-pill">12 / 12</span>
+        </header>
+
+        <div class="s-cta">
+          <span class="s-cta__kicker">Váš detektivní tým pro plynulost konverzí</span>
+          <h2 class="s-cta__title">Přivolejte <span class="ant">(ant).</span></h2>
+          <p class="s-cta__sub">Odhalíme váš gang. Spočítáme, kolik vás stál. A pomůžeme ho zneškodnit.</p>
+
+          <div class="s-cta__contacts">
+            <div class="s-cta__box">
+              <span class="s-cta__box-label">Web</span>
+              <a class="s-cta__box-value" href="https://www.ant.cz">www.ant.cz</a>
+            </div>
+            <div class="s-cta__box">
+              <span class="s-cta__box-label">E-mail</span>
+              <a class="s-cta__box-value" href="mailto:detective@ant.cz">detective@ant.cz</a>
+            </div>
+            <div class="s-cta__box">
+              <span class="s-cta__box-label">Telefon</span>
+              <a class="s-cta__box-value" href="tel:+420000000000">+420 000 000 000</a>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer" style="opacity:0.5;">
+          <span>(ant) · Case File #W-2026</span>
+          <span>12 / 12</span>
+        </footer>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============================================================
+       NAV + HINT
+       ============================================================ -->
+  <div class="deck-hint">← → mezerník · F = fullscreen · P = print</div>
+
+  <nav class="deck-nav" aria-label="Slide navigation">
+    <button id="prev" aria-label="Předchozí slide">←</button>
+    <span class="deck-nav__counter" id="counter">01 / 12</span>
+    <button id="next" aria-label="Další slide">→</button>
+  </nav>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      const counter = document.getElementById('counter');
+      const prev = document.getElementById('prev');
+      const next = document.getElementById('next');
+      let idx = 0;
+
+      const pad = (n) => String(n).padStart(2, '0');
+
+      function show(i) {
+        idx = Math.max(0, Math.min(total - 1, i));
+        slides.forEach((s, k) => s.classList.toggle('is-active', k === idx));
+        counter.textContent = `${pad(idx + 1)} / ${pad(total)}`;
+        history.replaceState(null, '', `#slide-${idx + 1}`);
+      }
+
+      function go(delta) { show(idx + delta); }
+
+      // Init from hash
+      const m = location.hash.match(/^#slide-(\d+)/);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!Number.isNaN(n)) show(n - 1);
+      }
+
+      next.addEventListener('click', () => go(1));
+      prev.addEventListener('click', () => go(-1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+          e.preventDefault(); go(1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          e.preventDefault(); go(-1);
+        } else if (e.key === 'Home') {
+          show(0);
+        } else if (e.key === 'End') {
+          show(total - 1);
+        } else if (e.key === 'f' || e.key === 'F') {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+        } else if (e.key === 'p' || e.key === 'P') {
+          window.print();
+        }
+      });
+
+      // Wheel scrolls slide-by-slide (debounced)
+      let wheelLock = false;
+      window.addEventListener('wheel', (e) => {
+        if (wheelLock) return;
+        if (Math.abs(e.deltaY) < 30) return;
+        wheelLock = true;
+        go(e.deltaY > 0 ? 1 : -1);
+        setTimeout(() => (wheelLock = false), 380);
+      }, { passive: true });
+
+      show(idx);
+    })();
+  </script>
+</body>
+</html>
