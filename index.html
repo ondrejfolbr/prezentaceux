@@ -145,15 +145,37 @@
       letter-spacing: 0;
     }
 
-    /* ---------- Highlight pattern ---------- */
+    /* ---------- Highlight pattern ----------
+       Marker-style: linear-gradient drží highlight v pásu kolem textu,
+       diakritika ze sousedního řádku má volno (tight line-height OK). */
     .hl {
-      background: var(--ant-green);
+      background-image: linear-gradient(
+        180deg,
+        transparent 0 8%,
+        var(--ant-green) 8% 92%,
+        transparent 92% 100%
+      );
       padding: 0 0.12em;
       box-decoration-break: clone;
       -webkit-box-decoration-break: clone;
     }
-    .canvas--green .hl { background: var(--white); }
-    .canvas--dark  .hl { background: var(--ant-green); color: var(--black); }
+    .canvas--green .hl {
+      background-image: linear-gradient(
+        180deg,
+        transparent 0 8%,
+        var(--white) 8% 92%,
+        transparent 92% 100%
+      );
+    }
+    .canvas--dark .hl {
+      color: var(--black);
+      background-image: linear-gradient(
+        180deg,
+        transparent 0 8%,
+        var(--ant-green) 8% 92%,
+        transparent 92% 100%
+      );
+    }
 
     /* ---------- Case meta header ---------- */
     .case-meta {
@@ -537,10 +559,11 @@
     .s-cover__title {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 280px;
-      line-height: 0.86;
+      font-size: 200px;
+      line-height: 0.92;
       letter-spacing: var(--display-tracking);
       color: var(--white);
+      max-width: 100%;
     }
     .s-cover__title .ant {
       color: var(--ant-green);
@@ -558,35 +581,44 @@
     /* --- Slide 02: Příběh --- */
     .s-story {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 56px;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 48px;
       height: 100%;
-      padding-top: 120px;
-      padding-bottom: 80px;
+      padding-top: 96px;
+      padding-bottom: 64px;
+      align-items: start;
     }
     .s-story__narrative {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 6px;
+    }
+    .s-story__h2 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 44px;
+      line-height: 1.04;
+      letter-spacing: var(--display-tracking);
+      margin-bottom: 12px;
     }
     .s-story__line {
       font-family: var(--font-display);
       font-weight: 600;
-      font-size: 38px;
-      line-height: 1.1;
+      font-size: 26px;
+      line-height: 1.15;
       letter-spacing: var(--display-tracking);
     }
     .s-story__line--muted { color: var(--grey); font-weight: 400; }
-    .s-story__line--final { color: var(--black); font-weight: 700; }
+    .s-story__line--final { color: var(--black); font-weight: 700; margin-top: 4px; }
 
     .s-story__suspects {
-      align-self: end;
       background: var(--light-grey);
       border-radius: var(--radius);
-      padding: 28px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+      margin-top: 64px;
     }
     .s-story__suspects h4 {
       font-family: var(--font-body);
@@ -599,12 +631,12 @@
     .s-story__suspects ul {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .s-story__suspects li {
       font-family: var(--font-display);
       font-weight: 500;
-      font-size: 24px;
+      font-size: 22px;
       letter-spacing: var(--display-tracking);
       text-decoration: line-through;
       text-decoration-color: var(--grey);
@@ -613,19 +645,20 @@
     .s-story__pointer {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 22px;
+      font-size: 20px;
       letter-spacing: var(--display-tracking);
       color: var(--black);
-      line-height: 1.15;
+      line-height: 1.2;
+      margin-top: 8px;
     }
 
     /* --- Slide 03: Gang --- */
     .s-gang {
       display: flex;
       flex-direction: column;
-      gap: 36px;
-      padding-top: 110px;
-      padding-bottom: 80px;
+      gap: 28px;
+      padding-top: 96px;
+      padding-bottom: 64px;
       height: 100%;
     }
     .s-gang__head {
@@ -637,52 +670,55 @@
     .s-gang__head h2 {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 80px;
+      font-size: 56px;
       letter-spacing: var(--display-tracking);
-      line-height: 0.95;
-      max-width: 800px;
+      line-height: 1.04;
+      max-width: 900px;
     }
     .s-gang__grid {
       flex: 1;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 20px;
+      align-content: start;
     }
     .s-gang__card {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
     .s-gang__card-title {
       font-family: var(--font-display);
       font-weight: 600;
-      font-size: 22px;
+      font-size: 20px;
       letter-spacing: var(--display-tracking);
-      line-height: 1.05;
+      line-height: 1.08;
     }
     .s-gang__card-desc {
       font-family: var(--font-body);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       letter-spacing: var(--body-tracking);
       color: var(--grey);
       line-height: 1.4;
     }
+    .silhouette { aspect-ratio: 1 / 1; }
 
     /* --- Slide 04-07: Wanted dossier --- */
     .s-dossier {
       display: grid;
-      grid-template-columns: 0.9fr 1.1fr;
-      gap: 56px;
+      grid-template-columns: 0.78fr 1.22fr;
+      gap: 48px;
       height: 100%;
-      padding-top: 110px;
-      padding-bottom: 80px;
-      align-items: stretch;
+      padding-top: 96px;
+      padding-bottom: 64px;
+      align-items: start;
     }
     .s-dossier__left {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+      align-items: flex-start;
     }
     .s-dossier__case {
       font-family: var(--font-body);
@@ -695,21 +731,21 @@
     .s-dossier__right {
       display: flex;
       flex-direction: column;
-      gap: 22px;
-      padding-top: 4px;
+      gap: 14px;
+      padding-top: 0;
     }
     .s-dossier__title {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 78px;
+      font-size: 60px;
       letter-spacing: var(--display-tracking);
-      line-height: 0.92;
+      line-height: 0.96;
     }
     .s-dossier__row {
       display: grid;
-      grid-template-columns: 130px 1fr;
-      gap: 20px;
-      padding: 14px 0;
+      grid-template-columns: 120px 1fr;
+      gap: 18px;
+      padding: 10px 0;
       border-top: 1px solid var(--light-grey);
     }
     .s-dossier__row:first-of-type { border-top: 0; padding-top: 0; }
@@ -726,9 +762,9 @@
     .s-dossier__row dd {
       font-family: var(--font-display);
       font-weight: 500;
-      font-size: 22px;
+      font-size: 18px;
       letter-spacing: var(--display-tracking);
-      line-height: 1.2;
+      line-height: 1.25;
       margin: 0;
     }
     .s-dossier__badges {
@@ -736,23 +772,29 @@
       gap: 10px;
       flex-wrap: wrap;
     }
+    /* Mugshot uvnitř dossier — fixed proporce, sedí do canvasu */
+    .s-dossier__left .mugshot {
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 3 / 4;
+    }
 
     /* --- Slide 08: Vyšetřování --- */
     .s-investigation {
       display: flex;
       flex-direction: column;
-      gap: 36px;
-      padding-top: 110px;
-      padding-bottom: 80px;
+      gap: 28px;
+      padding-top: 96px;
+      padding-bottom: 64px;
       height: 100%;
     }
     .s-investigation h2 {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 80px;
+      font-size: 56px;
       letter-spacing: var(--display-tracking);
-      line-height: 0.95;
-      max-width: 900px;
+      line-height: 1.04;
+      max-width: 1000px;
     }
     .s-investigation__grid {
       flex: 1;
@@ -837,7 +879,7 @@
       padding: 22px 28px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 10px;
       min-width: 360px;
     }
     .s-calc__amount-label {
@@ -910,10 +952,10 @@
     .s-news__headline {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 76px;
+      font-size: 64px;
       letter-spacing: var(--display-tracking);
-      line-height: 0.96;
-      max-width: 1100px;
+      line-height: 1.04;
+      max-width: 1080px;
     }
     .s-news__byline {
       font-family: var(--font-body);
@@ -963,34 +1005,35 @@
     .s-team {
       display: flex;
       flex-direction: column;
-      gap: 36px;
-      padding-top: 110px;
-      padding-bottom: 80px;
+      gap: 24px;
+      padding-top: 96px;
+      padding-bottom: 64px;
       height: 100%;
     }
     .s-team h2 {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 80px;
+      font-size: 64px;
       letter-spacing: var(--display-tracking);
-      line-height: 0.95;
+      line-height: 1.02;
       max-width: 900px;
     }
     .s-team__grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 20px;
-      flex: 1;
+      align-content: start;
     }
     .s-team__card {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 10px;
     }
     .s-team__photo {
       position: relative;
       width: 100%;
-      aspect-ratio: 3 / 4;
+      aspect-ratio: 4 / 5;
+      max-height: 320px;
       border-radius: var(--radius);
       overflow: hidden;
     }
@@ -1024,10 +1067,10 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 36px;
+      gap: 28px;
       height: 100%;
       padding-top: 110px;
-      padding-bottom: 80px;
+      padding-bottom: 64px;
     }
     .s-cta__kicker {
       font-family: var(--font-body);
@@ -1040,9 +1083,9 @@
     .s-cta__title {
       font-family: var(--font-display);
       font-weight: 700;
-      font-size: 200px;
+      font-size: 144px;
       letter-spacing: var(--display-tracking);
-      line-height: 0.9;
+      line-height: 1;
       color: var(--white);
     }
     .s-cta__title .ant { color: var(--ant-green); }
@@ -1166,7 +1209,7 @@
 
         <div class="s-story">
           <div class="s-story__narrative">
-            <h2 class="h2" style="margin-bottom:18px;">Na první pohled<br />všechno <span class="hl">vypadalo v pořádku.</span></h2>
+            <h2 class="s-story__h2">Na první pohled všechno <span class="hl">vypadalo v pořádku.</span></h2>
             <p class="s-story__line s-story__line--muted">Web běžel.</p>
             <p class="s-story__line s-story__line--muted">Návštěvnost rostla.</p>
             <p class="s-story__line s-story__line--muted">Kampaně přiváděly.</p>
